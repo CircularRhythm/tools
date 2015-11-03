@@ -1,7 +1,7 @@
 {
   "name": "circular-rhythm-tools",
   "version": "0.0.0",
-  "description": "It will contain asset converter",
+  "description": "Asset converter, Music list creator etc.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -18,5 +18,9 @@
     "iconv-lite": "^0.4.13",
     "jschardet": "^1.3.0",
     "yargs": "^3.27.0"
+  },
+  "devDependencies": {
+    "prompt": "^0.2.14",
+    "prompt-sync": "^3.0.0"
   }
 }
