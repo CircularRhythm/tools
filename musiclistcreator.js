@@ -104,6 +104,15 @@ function addChart(entry, dirPath, filePath, overwriteInfo) {
 
   const bpmList = bmson.bpm_events.map((e) => e.bpm).concat(bmson.info.init_bpm)
 
+  let notes = 0
+  bmson.sound_channels.forEach((channel) => {
+    if(mode == "single") {
+      notes += channel.notes.filter((note) => 1 <= note.x && note.x <= 5).length
+    } else if(mode == "double") {
+      notes += channel.notes.filter((note) => 1 <= note.x && note.x <= 9).length
+    }
+  })
+
   const chart = {}
   chart.file = filePath
   /*chart.title = bmson.info.title
@@ -118,6 +127,7 @@ function addChart(entry, dirPath, filePath, overwriteInfo) {
     min: Math.min(...bpmList),
     max: Math.max(...bpmList)
   }
+  chart.notes = notes
 
   console.log(`Added ${filePath}: ${modeString[mode]} ${chart.chart_name} Level ${chart.level}`)
 
