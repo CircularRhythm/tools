@@ -28,13 +28,18 @@ fs.readFile(inputPath, (err, data) => {
   const charset = jschardet.detect(data)
   const bmson = JSON.parse(iconv.decode(data, charset.encoding))
 
+  if(!bmson.version) {
+    console.error("Legacy bmson isn't supported. Please upgrade the file.")
+    process.exit()
+  }
+
   //let currentFragment = new Buffer(fragSize)
   let currentFragmentStart = 0
   let currentFragmentIndex = 0
   let fragmentBuffers = [new Buffer(fragSize)]
   let reference = {}
 
-  bmson.soundChannel.forEach((channel) => {
+  bmson.sound_channels.forEach((channel) => {
     const name = channel.name
     let fileName = name
     let success = false
@@ -58,44 +63,44 @@ fs.readFile(inputPath, (err, data) => {
 
     if(!success) {
       console.error(`In channel "${name}": File not found`)
-      process.exit()
-    }
 
-    console.log(fileName)
-    const data = fs.readFileSync(inputDir + "/" + fileName)
-
-    if(name != fileName) {
-      console.log(`${name} -> ${fileName}: ${data.length}`)
+      //process.exit()
     } else {
-      console.log(`${name}: ${data.length}`)
-    }
+      const data = fs.readFileSync(inputDir + "/" + fileName)
 
-    let sourceSize = data.length
-    let sourceRemainSize = data.length
-
-    while(sourceRemainSize > 0) {
-      if(currentFragmentStart == fragSize) {
-        currentFragmentIndex ++
-        fragmentBuffers[currentFragmentIndex] = new Buffer(fragSize)
-        currentFragmentStart = 0
-      }
-
-      const sourceStart = sourceSize - sourceRemainSize
-      let sourceEnd = sourceStart + fragSize
-      if(sourceEnd > sourceSize) sourceEnd = sourceSize
-      if(currentFragmentStart + sourceEnd - sourceStart > fragSize) sourceEnd = sourceStart + fragSize - currentFragmentStart
-
-      data.copy(fragmentBuffers[currentFragmentIndex], currentFragmentStart, sourceStart, sourceEnd)
-
-      sourceRemainSize -= sourceEnd - sourceStart
-
-      console.log(`- [${sourceStart}, ${sourceEnd}) -> ${currentFragmentIndex}.crasset [${currentFragmentStart}, ${currentFragmentStart + sourceEnd - sourceStart})`)
-      if(!reference[fileName]) {
-        reference[fileName] = [[currentFragmentIndex, currentFragmentStart, currentFragmentStart + sourceEnd - sourceStart]]
+      if(name != fileName) {
+        console.log(`${name} -> ${fileName}: ${data.length}`)
       } else {
-        reference[fileName].push([currentFragmentIndex, currentFragmentStart, currentFragmentStart + sourceEnd - sourceStart])
+        console.log(`${name}: ${data.length}`)
       }
-      currentFragmentStart += sourceEnd - sourceStart
+
+      let sourceSize = data.length
+      let sourceRemainSize = data.length
+
+      while(sourceRemainSize > 0) {
+        if(currentFragmentStart == fragSize) {
+          currentFragmentIndex ++
+          fragmentBuffers[currentFragmentIndex] = new Buffer(fragSize)
+          currentFragmentStart = 0
+        }
+
+        const sourceStart = sourceSize - sourceRemainSize
+        let sourceEnd = sourceStart + fragSize
+        if(sourceEnd > sourceSize) sourceEnd = sourceSize
+        if(currentFragmentStart + sourceEnd - sourceStart > fragSize) sourceEnd = sourceStart + fragSize - currentFragmentStart
+
+        data.copy(fragmentBuffers[currentFragmentIndex], currentFragmentStart, sourceStart, sourceEnd)
+
+        sourceRemainSize -= sourceEnd - sourceStart
+
+        console.log(`- [${sourceStart}, ${sourceEnd}) -> ${currentFragmentIndex}.crasset [${currentFragmentStart}, ${currentFragmentStart + sourceEnd - sourceStart})`)
+        if(!reference[fileName]) {
+          reference[fileName] = [[currentFragmentIndex, currentFragmentStart, currentFragmentStart + sourceEnd - sourceStart]]
+        } else {
+          reference[fileName].push([currentFragmentIndex, currentFragmentStart, currentFragmentStart + sourceEnd - sourceStart])
+        }
+        currentFragmentStart += sourceEnd - sourceStart
+      }
     }
   })
 

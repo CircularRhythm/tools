@@ -16,6 +16,7 @@ const argv = yargs
   .command("arrange", "Arrange music(s)")
   .argv
 
+const modeString = {single: "Single", double: "Double"}
 
 function promptYesNo(message, defaultValue) {
   let result = null
@@ -68,41 +69,78 @@ function addChart(entry, dirPath, filePath, overwriteInfo) {
   const charset = jschardet.detect(data)
   const bmson = JSON.parse(iconv.decode(data, charset.encoding))
 
-  // TODO: support v1.0
+  if(!bmson.version) {
+    console.error("Legacy bmson isn't supported. Please upgrade the file.")
+    return
+  }
+
+  let mode
+  if(bmson.info.mode_hint == "circularrhythm-single") {
+    mode = "single"
+  } else if(bmson.info.mode_hint == "circularrhythm-double") {
+    mode = "double"
+  } else {
+    console.error("Unsupported mode hint: " + bmson.info.mode_hint)
+    return
+  }
+
   if(overwriteInfo) {
     entry.title = bmson.info.title
-    entry.genre = bmson.info.genre
+    entry.subtitle = bmson.info.subtitle || ""
     entry.artist = bmson.info.artist
-    console.log(`Taking music info: ${entry.title}, ${entry.genre}, ${entry.artist}`)
+    entry.subartists = bmson.info.subartists || []
+    entry.genre = bmson.info.genre
+    entry.banner_image = bmson.info.banner_image || null
+    entry.preview_music = bmson.info.preview_music || null
+    console.log(`Set music info from ${filePath}:`)
+    console.log(`  title: ${entry.title}`)
+    console.log(`  subtitle: ${entry.subtitle}`)
+    console.log(`  artist: ${entry.artist}`)
+    console.log(`  subartists: ${entry.subartists.join(",")}`)
+    console.log(`  genre: ${entry.genre}`)
+    console.log(`  banner_image: ${entry.banner_image}`)
+    console.log(`  preview_music: ${entry.preview_music}`)
   }
+
+  const bpmList = bmson.bpm_events.map((e) => e.bpm).concat(bmson.info.init_bpm)
 
   const chart = {}
   chart.file = filePath
-  chart.title = bmson.info.title
-  chart.genre = bmson.info.genre
+  /*chart.title = bmson.info.title
+  chart.subtitle = bmson.info.subtitle || ""
   chart.artist = bmson.info.artist
-  chart.bpm = bmson.info.initBPM
+  chart.subartists = bmson.info.subartists || []
+  chart.genre = bmson.info.genre*/
+  chart.chart_name = bmson.info.chart_name
   chart.level = bmson.info.level
-  console.log(`Added ${filePath}: ${chart.title} ${chart.genre}, ${chart.artist}`)
+  chart.bpm = {
+    initial: bmson.info.init_bpm,
+    min: Math.min(...bpmList),
+    max: Math.max(...bpmList)
+  }
 
-  const mode = "single"
+  console.log(`Added ${filePath}: ${modeString[mode]} ${chart.chart_name} Level ${chart.level}`)
+
   entry.charts[mode].push(chart)
 }
 
 function infoEntry(entry) {
   console.log(`  title: ${entry.title}`)
-  console.log(`  genre: ${entry.genre}`)
+  console.log(`  subtitle: ${entry.subtitle}`)
   console.log(`  artist: ${entry.artist}`)
+  console.log(`  subartists: ${entry.subartists.join(",")}`)
+  console.log(`  genre: ${entry.genre}`)
+  console.log(`  banner_image: ${entry.banner_image}`)
+  console.log(`  preview_music: ${entry.preview_music}`)
   console.log(`  basedir: ${entry.basedir}`)
   console.log(`  packed_assets: ${entry.packed_assets}`)
   console.log("  Single charts:")
-  // TODO: chart_type
   entry.charts.single.forEach((e) => {
-    console.log(`    ${e.file}: ${e.level}`)
+    console.log(`    ${e.file}: ${e.chart_name} Level ${e.level}`)
   })
   console.log("  Double charts:")
   entry.charts.double.forEach((e) => {
-    console.log(`    ${e.file}: ${e.level}`)
+    console.log(`    ${e.file}: ${e.chart_name} Level ${e.level}`)
   })
 }
 
